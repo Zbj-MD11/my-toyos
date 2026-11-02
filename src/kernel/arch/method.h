@@ -88,7 +88,7 @@ static inline void w_mie(uint64 x)
     asm volatile("csrw mie, %0" : : "r"(x));
 }
 
-// S-mode发生异常时，返回地址存在mepc寄存器
+// S-mode发生异常时，返回地址存在sepc寄存器
 // 写入sepc寄存器
 static inline void w_sepc(uint64 x)
 {

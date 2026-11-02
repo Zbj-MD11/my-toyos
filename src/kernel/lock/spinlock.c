@@ -32,26 +32,78 @@ void pop_off(void)
 }
 
 
-// 自选锁初始化
+// 自旋锁初始化
 void spinlock_init(spinlock_t *lk, char *name)
 {
+
+    lk->locked=0;//初始不上锁
+    lk->name =name;
+    lk->cpuid=-1;//初始时没有分配给任何CPU，故为-1
 
 }
 
 // 是否持有自旋锁
 bool spinlock_holding(spinlock_t *lk)
 {
+    if(lk->locked==1&&mycpuid()==lk->cpuid){
 
+        return true;//如果上锁且CPU匹配，则返回真
+
+    }else{
+
+        return false;
+
+    }
 }
 
-// 获取自选锁
+// 获取自旋锁
 void spinlock_acquire(spinlock_t *lk)
 {
+    push_off();
 
+    assert(!spinlock_holding(lk), 
+    "spinlock_acquire: current CPU has hold the lock");
+
+    
+    int old;
+    int desired = 1;
+
+    while (true){
+        asm volatile(
+        "amoswap.w.aq %0, %2, (%1)"
+        : "=r"(old)
+        : "r"(&lk->locked), "r"(desired)
+        : "memory"
+        );
+        if(old==0){
+            break;
+        }
+    }
+
+    lk->cpuid=mycpuid();
+    return;
 }
 
 // 释放自旋锁
 void spinlock_release(spinlock_t *lk)
 {
+    
+    int desired = 0;
+    assert(spinlock_holding(lk), 
+    "spinlock_release: current CPU does not hold the lock");
 
+   
+
+        lk->cpuid=-1;
+        asm volatile(
+        "amoswap.w.rl x0, %1, (%0)"
+        : 
+        : "r"(&lk->locked), "r"(desired)
+        : "memory"
+        );
+        
+        pop_off();
+        return;
+    
+    
 }
