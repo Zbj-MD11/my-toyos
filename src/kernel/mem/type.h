@@ -6,7 +6,7 @@
 
 /*
     物理内存管理的核心是空闲页面组成的单链表:
-    kern_reagion和user_region的list_head字段是链表的头节点
+    kern_region和user_region的list_head字段是链表的头节点
     物理页的分配就是将list_head->next移出链表
     物理页的回收就是将node插入list_head->next
     你可能注意到了:我们没有一个和物理页数量一样多的page_node数组

@@ -14,3 +14,7 @@ void vm_unmappages(pgtbl_t pgtbl, uint64 va, uint64 len, bool freeit);
 void vm_print(pgtbl_t pgtbl);
 void kvm_init();
 void kvm_inithart();
+
+// 物理内存测试
+void test_case_1(void);
+void test_case_2(void);
