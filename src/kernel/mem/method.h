@@ -18,3 +18,6 @@ void kvm_inithart();
 // 物理内存测试
 void test_case_1(void);
 void test_case_2(void);
+
+//虚拟内存测试
+void test_mapping_and_unmapping(void);

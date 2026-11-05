@@ -59,7 +59,7 @@ extern char ALLOC_END[];
     
     satp寄存器的bit结构: MODE(4bit) + ASID(16bit) + PPN(44bit)
     - MODE控制虚拟内存模式
-    - ASID与Flash刷新有关
+    - ASID与Flush刷新有关
     - PPN存放页表基地址
     可以通过w_satp(MAKE_SATP(pgtbl))命令将页表地址填入satp寄存器并启动地址翻译
     在无页表到有页表 + 切换页表的情况下会用到
