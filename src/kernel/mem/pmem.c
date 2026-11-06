@@ -142,7 +142,7 @@ void test_case_1()
     while (1)
     {
         
-        pmem_alloc(false);
+        pmem_alloc(true);
         i++;
         printf("%d\n",i);
         
@@ -225,4 +225,262 @@ void test_case_2()
     }
 
     printf("test_case_2 passed!\n");
+}
+
+
+#define PMEM_ALIGN_CNT 16
+
+void test_pmem_alignment(void)
+{
+    printf("\n=== test_pmem_alignment ===\n");
+
+    for (int mode = 0; mode < 2; mode++)
+    {
+        bool in_kernel = (mode == 1);
+        uint64 pages[PMEM_ALIGN_CNT];
+
+        for (int i = 0; i < PMEM_ALIGN_CNT; i++)
+        {
+            pages[i] = (uint64)pmem_alloc(in_kernel);
+
+            assert(pages[i] % PGSIZE == 0,
+                   "test_pmem_alignment: page is not aligned");
+        }
+
+        // 归还本次测试申请的全部页面
+        for (int i = 0; i < PMEM_ALIGN_CNT; i++)
+        {
+            pmem_free(pages[i], in_kernel);
+        }
+
+        printf("mode %d alignment passed!\n", mode);
+    }
+
+    printf("test_pmem_alignment passed!\n");
+}
+
+#define PMEM_UNIQUE_CNT 16
+
+void test_pmem_unique(void)
+{
+    printf("\n=== test_pmem_unique ===\n");
+
+    uint64 pages[2][PMEM_UNIQUE_CNT];
+
+    // mode 0: 用户页
+    // mode 1: 内核页
+    for (int mode = 0; mode < 2; mode++)
+    {
+        bool in_kernel = (mode == 1);
+
+        for (int i = 0; i < PMEM_UNIQUE_CNT; i++)
+        {
+            pages[mode][i] = (uint64)pmem_alloc(in_kernel);
+
+            // 检查本次分配是否与之前尚未释放的页面重复
+            for (int m = 0; m <= mode; m++)
+            {
+                int count = (m == mode) ? i : PMEM_UNIQUE_CNT;
+
+                for (int j = 0; j < count; j++)
+                {
+                    assert(pages[mode][i] != pages[m][j],
+                           "test_pmem_unique: duplicate physical page");
+                }
+            }
+        }
+    }
+
+    // 验证完成后归还全部物理页
+    for (int mode = 0; mode < 2; mode++)
+    {
+        for (int i = 0; i < PMEM_UNIQUE_CNT; i++)
+        {
+            pmem_free(pages[mode][i], mode == 1);
+        }
+    }
+
+    printf("test_pmem_unique passed!\n");
+}
+
+void test_pmem_invalid_free(int kind)
+{
+    printf("\n=== test_pmem_invalid_free ===\n");
+
+    uint64 pa;
+
+    if (kind == 1)
+    {
+        // 情况 1：未对齐地址
+        pa = (uint64)pmem_alloc(false);
+
+        printf("Testing unaligned free, expect panic...\n");
+
+        pmem_free(pa + 1, false);
+    }
+    else if (kind == 2)
+    {
+        // 情况 2：恰好等于用户区域结束地址
+        pa = user_region.end;
+
+        printf("Testing out-of-range free, expect panic...\n");
+
+        pmem_free(pa, false);
+    }
+    else if (kind == 3)
+    {
+        // 情况 3：把用户页作为内核页释放
+        pa = (uint64)pmem_alloc(false);
+
+        printf("Testing wrong-region free, expect panic...\n");
+
+        pmem_free(pa, true);
+    }
+    else
+    {
+        panic("test_pmem_invalid_free: invalid test kind");
+    }
+
+    // 如果程序运行到这里，说明非法释放没有被拒绝
+    panic("BUG: invalid free was accepted");
+}
+
+void test_pmem_double_free(void)
+{
+    printf("\n=== test_pmem_double_free ===\n");
+
+    uint64 pa = (uint64)pmem_alloc(false);
+
+    printf("First free...\n");
+    pmem_free(pa, false);
+
+    printf("Second free, expect rejection...\n");
+    pmem_free(pa, false);
+
+    // 如果能够继续执行，就说明重复释放未被拒绝
+    panic("BUG: double free was accepted");
+}
+
+#define PMEM_CONC_CNT 64
+
+static uint64 conc_pages[2][PMEM_CONC_CNT];
+
+static int conc_ready[2] = {0, 0};
+static int conc_alloc_done[2] = {0, 0};
+static int conc_verified = 0;
+static int conc_free_done[2] = {0, 0};
+
+void test_pmem_concurrent(int hartid)
+{
+    assert(hartid == 0 || hartid == 1,
+           "test_pmem_concurrent: invalid hartid");
+
+    int initial_allocable = 0;
+
+    // 只有 Hart 0 记录初始空闲页数
+    if (hartid == 0)
+    {
+        spinlock_acquire(&user_region.lk);
+        initial_allocable = user_region.allocable;
+        spinlock_release(&user_region.lk);
+
+        assert(initial_allocable >= 2 * PMEM_CONC_CNT,
+               "test_pmem_concurrent: not enough free pages");
+    }
+
+    // 第一阶段：等待两个 hart 都进入测试
+    __atomic_store_n(&conc_ready[hartid], 1, __ATOMIC_RELEASE);
+
+    while (__atomic_load_n(&conc_ready[1 - hartid],
+                           __ATOMIC_ACQUIRE) == 0)
+        ;
+
+    // 第二阶段：各自申请 64 个物理页
+    for (int i = 0; i < PMEM_CONC_CNT; i++)
+    {
+        conc_pages[hartid][i] = (uint64)pmem_alloc(false);
+    }
+
+    __atomic_store_n(&conc_alloc_done[hartid],
+                     1, __ATOMIC_RELEASE);
+
+    // 等待另一个 hart 完成分配
+    while (__atomic_load_n(&conc_alloc_done[1 - hartid],
+                           __ATOMIC_ACQUIRE) == 0)
+        ;
+
+    // 第三阶段：Hart 0 统一检查
+    if (hartid == 0)
+    {
+        for (int h = 0; h < 2; h++)
+        {
+            for (int i = 0; i < PMEM_CONC_CNT; i++)
+            {
+                uint64 pa = conc_pages[h][i];
+
+                // 页对齐检查
+                assert(pa % PGSIZE == 0,
+                       "concurrent: unaligned page");
+
+                // 地址范围检查
+                assert(pa >= user_region.begin &&
+                       pa < user_region.end,
+                       "concurrent: page out of range");
+
+                // 检查所有页面是否重复
+                for (int h2 = 0; h2 <= h; h2++)
+                {
+                    int count = (h2 == h) ? i : PMEM_CONC_CNT;
+
+                    for (int j = 0; j < count; j++)
+                    {
+                        assert(pa != conc_pages[h2][j],
+                               "concurrent: duplicate page");
+                    }
+                }
+            }
+        }
+
+        spinlock_acquire(&user_region.lk);
+        int actual = user_region.allocable;
+        spinlock_release(&user_region.lk);
+
+        assert(actual == initial_allocable - 2 * PMEM_CONC_CNT,
+               "concurrent: allocable incorrect after alloc");
+
+        printf("Concurrent allocation verification passed!\n");
+
+        __atomic_store_n(&conc_verified, 1, __ATOMIC_RELEASE);
+    }
+
+    // Hart 1 等待 Hart 0 完成检查
+    while (__atomic_load_n(&conc_verified,
+                           __ATOMIC_ACQUIRE) == 0)
+        ;
+
+    // 第四阶段：两个 hart 分别释放自己的页面
+    for (int i = 0; i < PMEM_CONC_CNT; i++)
+    {
+        pmem_free(conc_pages[hartid][i], false);
+    }
+
+    __atomic_store_n(&conc_free_done[hartid],
+                     1, __ATOMIC_RELEASE);
+
+    // 第五阶段：Hart 0 检查计数是否恢复
+    if (hartid == 0)
+    {
+        while (__atomic_load_n(&conc_free_done[1],
+                               __ATOMIC_ACQUIRE) == 0)
+            ;
+
+        spinlock_acquire(&user_region.lk);
+        int actual = user_region.allocable;
+        spinlock_release(&user_region.lk);
+
+        assert(actual == initial_allocable,
+               "concurrent: allocable not restored");
+
+        printf("test_pmem_concurrent passed!\n");
+    }
 }

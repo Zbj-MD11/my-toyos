@@ -18,6 +18,20 @@ void kvm_inithart();
 // 物理内存测试
 void test_case_1(void);
 void test_case_2(void);
+// 测试物理页地址对齐
+void test_pmem_alignment(void);
+
+// 测试物理页分配的唯一性
+void test_pmem_unique(void);
+
+// 测试非法释放（kind = 1、2、3）
+void test_pmem_invalid_free(int kind);
+
+// 测试重复释放
+void test_pmem_double_free(void);
+
+// 测试双 hart 并发分配和释放
+void test_pmem_concurrent(int hartid);
 
 //虚拟内存测试
 void test_mapping_and_unmapping(void);
