@@ -87,6 +87,16 @@ void trap_kernel_handler()
         // 1-中断处理
         switch (trap_id) // 中断产生原因分类
         {
+        
+        case 1:
+
+            timer_interrupt_handler()();
+            break;
+
+        case 9:
+
+            external_interrupt_handler();
+            break;
 
         default: // 例外处理
             printf("\nunexpected interrupt: %s\n", interrupt_info[trap_id]);
@@ -109,7 +119,25 @@ void trap_kernel_handler()
 // 外设中断处理 (基于PLIC，lab-3只需要识别和处理UART中断)
 void external_interrupt_handler()
 {
+    int interreput_id=plic_claim();
+    switch(interreput_id){
+        case 0:
 
+            return;
+
+        case UART_IRQ:
+
+            uart_intr();
+            break;
+
+        default:
+
+            assert(false,"external_interrupt_handler:Invalid IRQ");
+            break;
+
+    }
+    plic_complete(interreput_id);
+    return;
 }
 
 // 时钟中断处理 (基于CLINT)
