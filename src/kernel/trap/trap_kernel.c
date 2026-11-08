@@ -90,7 +90,7 @@ void trap_kernel_handler()
         
         case 1:
 
-            timer_interrupt_handler()();
+            timer_interrupt_handler();
             break;
 
         case 9:
