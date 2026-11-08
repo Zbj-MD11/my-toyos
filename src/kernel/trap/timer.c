@@ -17,7 +17,6 @@ void timer_init()
     // 设置初始值 cmp_time = cur_time + time_interval
     *(uint64*)CLINT_MTIMECMP(hartid) = *(uint64*)CLINT_MTIME + INTERVAL;
 
-    // cur_mscratch 指向当前CPU的msrcatch数组
     uint64* cur_mscratch = mscratch[hartid];
 
     // cur_mscratch[1] [2] [3]先空着, 在trap.S里使用
@@ -45,17 +44,24 @@ static timer_t sys_timer;
 // 时钟创建
 void timer_create()
 {
-
+    sys_timer.ticks=0;
+    spinlock_init(&sys_timer.lk,"timer_lk");
 }
 
 // 时钟更新
 void timer_update()
 {
+    spinlock_acquire(&sys_timer.lk);
+    sys_timer.ticks++;
 
+    spinlock_release(&sys_timer.lk);
 }
 
 // 获取滴答数量 (不把sys_timer暴露出去, 只提供安全的访问接口)
 uint64 timer_get_ticks()
 {
-
+    spinlock_acquire(&sys_timer.lk);
+    uint64 cur=sys_timer.ticks;
+    spinlock_release(&sys_timer.lk);
+    return cur;
 }

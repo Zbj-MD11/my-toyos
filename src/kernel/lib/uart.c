@@ -58,15 +58,71 @@ int uart_getc_sync(void)
 	else
 		return -1;
 }
+// 记录当前输入行的字符数量
+static int line_len = 0;
 
-// 中断处理(键盘输入->屏幕输出)
+// 记录上一个字符是否为 CR，用于处理 CRLF
+static int last_was_cr = 0;
+
+// 中断处理（键盘输入 -> 屏幕输出）
 void uart_intr(void)
 {
-	while (1)
-	{
-		int c = uart_getc_sync();
-		if (c == -1)
-		break;
-		uart_putc_sync(c);
-	}
+    while (1)
+    {
+        int c = uart_getc_sync();
+
+        // 接收队列为空，退出
+        if (c == -1){
+			 break;
+		}
+           
+
+        // 1. 处理 CR
+        if (c == '\r'){
+            uart_putc_sync('\r');
+            uart_putc_sync('\n');
+
+            line_len = 0;
+            last_was_cr = 1;
+        }
+
+        // 2. 处理 LF
+        else if (c == '\n'){
+            // 如果前一个字符不是 CR，说明这是独立的 LF
+            if (!last_was_cr)
+            {
+                uart_putc_sync('\r');
+                uart_putc_sync('\n');
+
+                line_len = 0;
+            }
+
+            // 无论是否忽略 LF，都清除 CR 状态
+            last_was_cr = 0;
+        }
+
+        // 3. 处理 BS 和 DEL
+        else if (c == '\b' || c == 0x7f){
+            last_was_cr = 0;
+
+            // 只有当前行存在字符时才能退格
+            if (line_len > 0)
+            {
+                uart_putc_sync('\b');
+                uart_putc_sync(' ');
+                uart_putc_sync('\b');
+
+                line_len--;
+            }
+        }
+
+        // 4. 普通字符
+        else
+        {
+            last_was_cr = 0;
+
+            uart_putc_sync(c);
+            line_len++;
+        }
+    }
 }

@@ -145,6 +145,7 @@ void timer_interrupt_handler()
 {
     // 由于sys_timer是共享资源, 但每个CPU都能收到时钟中断
     // 所以只需要指定一个CPU(CPU-0)负责更新时钟
+    //printf("cpu %d:di da\n", mycpuid());
     if(mycpuid() == 0)
         timer_update();
     // 清除 SSIP bit (S-mode software interrupt pending)
