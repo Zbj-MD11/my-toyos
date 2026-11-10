@@ -21,6 +21,28 @@ static proc_t proczero;
 // 完成trapframe和trampoline的映射
 pgtbl_t proc_pgtbl_init(uint64 trapframe)
 {
+    //分配一个内核物理内存作为用户的根页表
+   pgtbl_t user_pgtbl_root = pmem_alloc(true);
+
+   //映射trampoline
+    vm_mappages(
+        user_pgtbl_root,
+        (uint64)TRAMPOLINE,
+        (uint64)trampoline,
+        PGSIZE,
+        PTE_R | PTE_X
+    );
+
+    //映射Trapframe
+    vm_mappages(
+        user_pgtbl_root,
+        (uint64)TRAPFRAME,
+        (uint64)trapframe,
+        PGSIZE,
+        PTE_R | PTE_W
+    );
+
+    return user_pgtbl_root;
 
 }
 
@@ -41,5 +63,62 @@ pgtbl_t proc_pgtbl_init(uint64 trapframe)
 */
 void proc_make_first()
 {
+    // 1. 初始化 PID
+    proczero.pid = 0;
 
+    // 2. 分配 Trapframe 物理页
+    proczero.tf = (trapframe_t *)pmem_alloc(true);
+
+    // 3. 创建用户根页表，并映射 Trampoline 和 Trapframe
+    proczero.pgtbl = proc_pgtbl_init((uint64)proczero.tf);
+
+    //这里直接设置为1页用户占
+    proczero.ustack_npage=1;
+    void *user_stack_page=pmem_alloc(false);
+    vm_mappages(
+        proczero.pgtbl,
+        (uint64)USTACK,
+        (uint64)user_stack_page,
+        PGSIZE*proczero.ustack_npage,
+        PTE_R | PTE_W | PTE_U
+
+    );
+
+    //用户代码段
+    void *user_code_page=pmem_alloc(false);
+
+    // 将用户程序机器码复制到新分配的物理页中
+    memmove(user_code_page,initcode,initcode_len);
+
+    // 在用户页表中映射代码页
+    vm_mappages(
+        proczero.pgtbl,
+        (uint64)USER_BASE,
+        (uint64)user_code_page,
+        PGSIZE,
+        PTE_R | PTE_X | PTE_U
+    );
+    //初始化用户进程的内存边界和执行现场
+    proczero.heap_top = USER_BASE + PGSIZE;
+
+    // 用户程序第一次执行的入口地址
+    proczero.tf->user_to_kern_epc=USER_BASE;
+
+    // 用户栈向低地址增长，因此初始 sp 设置为用户栈顶
+    proczero.tf->sp = USTACK+PGSIZE;
+
+    //初始化进程的内核栈及内核上下文
+    proczero.kstack = KSTACK(0);
+
+    // swtch() 恢复进程上下文后，使用该内核栈
+    proczero.ctx.sp = KSTACK(0) + PGSIZE;
+
+    // swtch() 最后的 ret 将跳转到 trap_user_return()
+    proczero.ctx.ra = (uint64)trap_user_return;
+
+    //将 proczero 关联到当前 Hart
+    cpu_t *cpu = mycpu();
+    cpu->proc=&proczero;
+    //保存当前内核上下文，切换到 proczero 的内核上下文
+    swtch(&cpu->ctx, &proczero.ctx);
 }

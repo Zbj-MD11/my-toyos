@@ -122,3 +122,16 @@ typedef pte_t* pgtbl_t;
 
 // 定义一个非常大的VA, 正常来说所有VA不得大于它
 #define VA_MAX (1ul << 38)
+
+//定义TRAMPOLINE，为最高的一页
+#define TRAMPOLINE (VA_MAX-PGSIZE)
+
+//然后是TP
+#define TRAPFRAME (TRAMPOLINE-PGSIZE)
+
+#define USTACK (TRAPFRAME-PGSIZE)
+
+#define KSTACK(pid) (USTACK - ((pid) + 1) * PGSIZE)
+
+//用户地址空间的第一个 4KB 页面不进行映射。
+#define USER_BASE PGSIZE

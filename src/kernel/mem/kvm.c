@@ -3,6 +3,8 @@
 // 内核页表
 static pgtbl_t kernel_pgtbl;
 
+
+
 // 根据pagetable,找到va对应的pte
 // 若设置alloc=true 则在PTE无效时尝试申请一个物理页
 // 成功返回PTE, 失败返回NULL
@@ -143,6 +145,9 @@ void vm_unmappages(pgtbl_t pgtbl, uint64 va, uint64 len, bool freeit)
 
 }
 
+//引入kernel.ld中的外部符号
+extern char trampoline[];
+
 // 完成UART、CLINT、PLIC、内核代码区、内核数据区、可分配区域的页表映射
 // 相当于部分填充kernel_pgtbl
 void kvm_init()
@@ -163,18 +168,46 @@ void kvm_init()
                 , PLIC_SCLAIM(NCPU-1)-PLIC_BASE+4, PTE_R | PTE_W);
 
     //内核部分
-    vm_mappages(kernel_pgtbl, (uint64)KERNEL_BASE, (uint64)KERNEL_BASE,(uint64)KERNEL_DATA-(uint64)KERNEL_BASE , PTE_R | PTE_X);
+    vm_mappages(
+        kernel_pgtbl, 
+        (uint64)KERNEL_BASE, 
+        (uint64)KERNEL_BASE,
+        (uint64)KERNEL_DATA-(uint64)KERNEL_BASE, 
+         PTE_R | PTE_X
+        );
 
-    vm_mappages(kernel_pgtbl, (uint64)KERNEL_DATA, (uint64)KERNEL_DATA,(uint64)ALLOC_BEGIN-(uint64)KERNEL_DATA , PTE_R | PTE_W);
+    vm_mappages(
+        kernel_pgtbl,
+        (uint64)TRAMPOLINE,
+        (uint64)trampoline,
+        PGSIZE,
+        PTE_R|PTE_X
+    );
 
-    vm_mappages(kernel_pgtbl, (uint64)ALLOC_BEGIN, (uint64)ALLOC_BEGIN,(uint64)ALLOC_END-(uint64)ALLOC_BEGIN , PTE_R | PTE_W );
+    vm_mappages(kernel_pgtbl,
+        (uint64)KERNEL_DATA,
+        (uint64)KERNEL_DATA,
+        (uint64)ALLOC_BEGIN-(uint64)KERNEL_DATA, 
+        PTE_R | PTE_W
+    );
+
+    vm_mappages(kernel_pgtbl,
+        (uint64)ALLOC_BEGIN,
+        (uint64)ALLOC_BEGIN,
+        (uint64)ALLOC_END-(uint64)ALLOC_BEGIN,
+        PTE_R | PTE_W
+    );
+
+    void *kstack_page = pmem_alloc(true);
+    vm_mappages(
+        kernel_pgtbl,
+        (uint64)KSTACK(0),
+        (uint64)kstack_page,
+        PGSIZE,
+        PTE_R | PTE_W
+    );
 
     
-
-
-
-
-
 
 }
 
