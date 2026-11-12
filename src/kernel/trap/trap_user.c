@@ -1,5 +1,4 @@
 #include "mod.h"
-#include "../../user/syscall_num.h"
 
 // in trampoline.S
 extern char trampoline[];   // 用户态与内核态共享的跳板代码

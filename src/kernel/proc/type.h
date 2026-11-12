@@ -67,6 +67,7 @@ typedef struct trapframe
 
 // 外部结构体
 typedef uint64 *pgtbl_t;
+typedef struct mmap_region mmap_region_t;
 
 // 进程
 typedef struct proc
