@@ -2,9 +2,9 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 被测分支 | `lab-1`（`origin/lab-1`，`d4a1536`） |
+| 被测分支 | `lab-1`（`origin/lab-1`，`b1355e9e`；与测试时的 `d4a1536` 代码相同，仅多 `.github/CODEOWNERS`） |
 | 测试分支 | `test/lab-1-round1` |
-| 测试日期 | 2026-11-11 21:30 – 2026-11-13 15:35（Asia/Shanghai） |
+| 测试日期 | 2026-11-11 21:30 – 2026-11-13 16:25（Asia/Shanghai） |
 | 测试环境 | VMware Workstation 17.6.4 / Ubuntu 24.04.3 LTS x86_64 |
 | 工具链 | `riscv64-linux-gnu-gcc 13.3.0`、`qemu-system-riscv64 8.2.2`、`gdb-multiarch 15.1` |
 | 启动参数 | `-machine virt -bios none -m 128M -smp 2 -nographic` |
@@ -58,7 +58,7 @@ QEMU 6.0 起，若 CPU 实现了 PMP 但一条规则都没有配置，执行 `mr
 
 **验证**
 
-修复后 A1–A4、A8 全部通过；连续 10 次运行输出一致：
+修复后 A1–A10 全部通过；连续 10 次运行输出一致：
 
 ```
 cpu 0 is booting!
@@ -73,7 +73,7 @@ cpu 1 report: sum = 2000000
 | --- | --- |
 | 严重级别 | 高（`-smp 4/8` 时内核不可用） |
 | 复现步骤 | 以 `-smp 4` 或 `-smp 8` 启动 |
-| 实际结果 | 只输出 `cpu 0 is booting!`；`-smp 8` 下输出被截断为 `cpu` |
+| 实际结果 | 多轮结果不一致：`-smp 4` 曾只输出 `cpu 0`，也曾输出 `cpu 0` + 带乱入字符的 `cpu 1`；`-smp 8` 曾只输出 `cpu 0`，也曾输出 `cpu 0` 和 `cpu 7`。存活 hart 集合随机 |
 | 期望结果 | 所有 hart 都启动并输出 |
 | 根因 | `NCPU=2`，而 `entry.S` 用 `CPU_stack + (hartid+1)*4096` 设置栈，hartid≥2 时越过 8 KB 数组；`lib/cpu.c` 的 `cpus[hartid]` 同样越界，破坏 `.bss` 中的共享变量 |
 | 建议 | `NCPU` 提升到实际最大核数并同步 `CPU_stack`/`cpus`，或在 `start()` 早期加 `assert(hartid < NCPU)` |
@@ -135,6 +135,7 @@ cpu 1 report: sum = 2000000
 1. **自动化脚本中启动 QEMU 必须重定向 stdin**：`< /dev/null`。否则 `timeout` 将 QEMU 放入新的后台进程组，QEMU 在 `-nographic` 下初始化终端时会被挂起，表现为"编译成功但运行零输出"的假故障（本轮排查中曾误判为内核问题）。
 2. 修改头文件后必须 `make clean`：Makefile 使用 `-MD` 生成 `.d` 依赖文件但未 `include`，头文件变化不会触发重编。
 3. **`make` 不带目标等价于 `make run`**（会构建并启动 QEMU，在前台等待），自动化脚本中不要裸跑 `make`；只编译请用 `make build`。
+4. 测试脚本 `tools/` 与原始日志 `testlog/` 保存在测试者本地，未随本 PR 提交；按本文档中的命令可复现全部用例。
 
 ## 5. 后续计划（round2）
 
