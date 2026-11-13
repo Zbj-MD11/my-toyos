@@ -2,6 +2,7 @@
 
 > 所有命令在项目根目录执行。
 > QEMU 统一用 `timeout --foreground <秒> qemu-system-riscv64 ... < /dev/null`，避免终端 stdin 导致 QEMU 挂起。
+> 命令中的 `/mnt/hgfs/zhousx/my-toyos-lab-1` 是测试者的本地项目路径，请替换为你自己的路径。
 
 ## A. 功能验收
 
@@ -16,7 +17,7 @@
 | A7 | printf 五格式 | 副本中插入一行格式测试 | `fmt: -123 0x123456789abcdef0 2a A ok` |
 | A8 | 10 次稳定性 | 连续启动 10 次，每次检查两行启动信息 | 10/10 通过 |
 | A9 | GDB 单步 | `make debug` + `gdb-multiarch`，断点 `_entry`、`main` | 断点命中，`mret` 后 PC 进入 `main` |
-| A10 | 最终回归 | 修复后重跑 A2、A3、A8、B1–B4 | 全部通过 |
+| A10 | 最终回归 | `bash tools/test.sh` + `bash tools/stability.sh 10` | 全部通过 |
 
 ## B. 边界与故障注入
 
@@ -28,7 +29,7 @@
 | B4 | 关闭 PMP | `-cpu rv64,pmp=off` 启动 | 应正常；用于反向验证 PMP 补丁 |
 | B5 | printf 边界 | 测试 `%%`、`INT_MIN`、`NULL`、`%q`、200 字符字符串 | 是否丢失字符、崩溃或输出错误值 |
 | B6 | panic/assert | ① 重复加锁 ② 未持有就释放 ③ 持 `print_lk` 时 panic | 是否打印 panic；③ 是否死锁/爆栈 |
-| B7 | 长输出/栈压力 | 循环打印长字符串 | 是否触发 4 KB 栈溢出 |
+| B7 | 长输出/栈压力 | 副本中加入每层 256 字节的递归 `deep(30)`（约 8KB） | 是否触发 4 KB 栈溢出 |
 | B8 | Makefile 行为 | `make`、`make debug`（未 build）、改头文件后 build | 默认目标、debug 依赖、头文件依赖是否符合预期 |
 
 ## 附录：需要改代码的用例
@@ -143,3 +144,56 @@ printf("e5:%s\n", buf);
 ### B6 panic/assert
 
 在副本的 `print_init()` 末尾插入 `spinlock_acquire(&print_lk); panic("held-lock test");`，观察是否递归 panic。重复加锁、未持有释放分别在 `main()` 的 CPU0 分支中构造。
+
+### A9 GDB 单步
+
+终端 1：`make build && make debug`（QEMU 冻结在复位向量，端口 = `25000 + uid%5000`，uid 1000 时为 26000）。
+
+终端 2：
+
+```bash
+gdb-multiarch -batch \
+  -ex 'set architecture riscv:rv64' \
+  -ex 'target remote 127.0.0.1:26000' \
+  -ex 'tbreak _entry' \
+  -ex 'c' \
+  -ex 'printf "hit _entry pc=%p\n", $pc' \
+  -ex 'tbreak main' \
+  -ex 'c' \
+  -ex 'printf "hit main pc=%p\n", $pc' \
+  -ex 'info registers pc sp tp' \
+  -ex 'detach' \
+  target/kernel/kernel-qemu.elf
+```
+
+用 `tbreak`（临时断点）而不是 `break`，否则第二个 hart 会再次停在 `_entry`。
+
+### B7 栈压力
+
+```bash
+rm -rf ~/lab1-exp-stack
+cp -r /mnt/hgfs/zhousx/my-toyos-lab-1 ~/lab1-exp-stack
+cd ~/lab1-exp-stack
+
+python3 - <<'PY'
+p = 'src/kernel/main.c'
+s = open(p).read()
+func = '''static int deep(int n)
+{
+    volatile char buf[256];
+    buf[0] = (char)n;
+    if (n <= 0) return buf[0];
+    return deep(n - 1) + buf[0];
+}
+
+void main()'''
+s = s.replace('void main()', func, 1)
+s = s.replace('        print_init();',
+              '        print_init();\n        printf("b7: stack test start\\n");\n        deep(30);\n        printf("b7: stack test survived\\n");', 1)
+open(p, 'w').write(s)
+PY
+
+make clean && make build
+timeout --foreground 5 qemu-system-riscv64 -machine virt -bios none \
+  -kernel target/kernel/kernel-qemu.elf -m 128M -smp 2 -nographic < /dev/null | head -20
+```
