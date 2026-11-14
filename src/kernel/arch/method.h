@@ -151,6 +151,18 @@ static inline void w_mtvec(uint64 x)
     asm volatile("csrw mtvec, %0" : : "r"(x));
 }
 
+// 写入pmpaddr0寄存器 (物理内存保护: 地址)
+static inline void w_pmpaddr0(uint64 x)
+{
+    asm volatile("csrw pmpaddr0, %0" : : "r"(x));
+}
+
+// 写入pmpcfg0寄存器 (物理内存保护: 权限配置)
+static inline void w_pmpcfg0(uint64 x)
+{
+    asm volatile("csrw pmpcfg0, %0" : : "r"(x));
+}
+
 // 写入satp寄存器
 static inline void w_satp(uint64 x)
 {

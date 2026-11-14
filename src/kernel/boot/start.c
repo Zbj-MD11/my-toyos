@@ -24,6 +24,15 @@ void start()
     // 设置M-mode的返回地址
     w_mepc((uint64)&main);
 
+    // 配置PMP(物理内存保护): 给S-mode开放全部物理内存的读/写/执行权限
+    // 注意: QEMU 6.0 之后, 如果一条PMP规则都没有配置,
+    //       mret 进入 S-mode 时会直接触发指令访问异常,
+    //       表现为内核"编译成功但运行毫无输出"
+    // pmpaddr0 = 0x3fffffffffffff 配合 pmpcfg0 = 0xf (TOR模式, R/W/X全开)
+    // 表示第0项保护区从地址0到0xffffffffffffc, 覆盖全部物理内存
+    w_pmpaddr0(0x3fffffffffffffull);
+    w_pmpcfg0(0xf);
+
     // 触发状态迁移，回到上一个状态（M-mode->S-mode）
     
     asm volatile("mret":::);
