@@ -1,0 +1,42 @@
+# lab-2 用例表（tests/run_tests.sh 读取）
+# 列: id | stage | 测试函数 | smp | 超时(s) | 必须出现的字符串(; 分隔) | 禁止出现的字符串(; 分隔) | 说明
+# stage: orig=原始 main.c 不注入；pmem=只初始化物理内存；vm=物理内存+页表+Sv39
+01_boot|orig|-|2|8|cpu 0 is booting!;cpu 1 is booting!;Welcome to ToyOS!|panic!|原始内核启动（未注入测试代码）
+02_sv39_identity|vm|lab2_case_sv39_identity|2|10|satp mode = 8;identity ok;RESULT: PASS|panic!|satp 进入 Sv39 + 恒等映射可读写
+03_pmem_kernel_exhaust|pmem|lab2_case_pmem_kernel_exhaust|2|25|kernel pages = 1024;panic! pmem_alloc:No available OS_Page|RESULT: PASS|内核区恰好 1024 页，耗尽后 panic
+04_pmem_user_exhaust|pmem|lab2_case_pmem_user_exhaust|2|40|user pages = ;count ok;panic! pmem_alloc:No available USER_Page|RESULT: PASS|用户区页数正确，耗尽后 panic
+05_pmem_alloc_unique|pmem|lab2_case_pmem_alloc_unique|2|10|unique ok: 16 kernel + 16 user pages;RESULT: PASS|panic!|两区域不重叠 / 页对齐 / 不重复
+06_pmem_lifo_reuse|pmem|lab2_case_pmem_lifo_reuse|2|10|reuse ok: 8 pages recycled;RESULT: PASS|panic!|释放的页能被重新分配
+07_pmem_zero_after_free|pmem|lab2_case_pmem_zero_after_free|2|10|zero on alloc ok;RESULT: PASS|panic!|重新分配到的页已清零
+08_pmem_free_unaligned|pmem|lab2_case_pmem_free_unaligned|2|10|panic! pmem_free:Page address doesn't match size|LAB2:;RESULT: PASS|未对齐地址释放 -> panic
+09_pmem_free_below_range|pmem|lab2_case_pmem_free_below_range|2|10|panic! pmem_free:Invalid page address|LAB2:;RESULT: PASS|ALLOC_BEGIN 前一页释放 -> panic
+10_pmem_free_at_end|pmem|lab2_case_pmem_free_at_end|2|10|panic! pmem_free:Invalid page address|LAB2:;RESULT: PASS|ALLOC_END 端点释放 -> panic
+11_pmem_free_user_as_kernel|pmem|lab2_case_pmem_free_user_as_kernel|2|10|panic! pmem_free:Invalid OS_page address|LAB2:;RESULT: PASS|用户页当内核页释放 -> panic
+12_pmem_free_kernel_as_user|pmem|lab2_case_pmem_free_kernel_as_user|2|10|panic! pmem_free:Invalid USER_page address|LAB2:;RESULT: PASS|内核页当用户页释放 -> panic
+13_pmem_double_free|pmem|lab2_case_pmem_double_free|2|10|panic!|LAB2:;RESULT: PASS|重复释放应被拒绝（预期 FAIL，见 BUG-L2-1）
+14_kvm_getpte_paths|vm|lab2_case_kvm_getpte_paths|2|10|getpte(false) on empty table -> NULL;RESULT: PASS|panic!|getpte 的 alloc=false / alloc=true 两条路径
+15_kvm_map_single|vm|lab2_case_kvm_map_single|2|10|map ok: va;RESULT: PASS|panic!|单页映射：V / PA / 权限位
+16_kvm_map_multi|vm|lab2_case_kvm_map_multi|2|10|multi map ok: 3 pages;RESULT: PASS|panic!|多页映射，PA 逐页递增
+17_kvm_map_len_boundary|vm|lab2_case_kvm_map_len_boundary|2|10|len boundary ok;RESULT: PASS|panic!|len = 1 / 4095 / 4097 向上取整
+18_kvm_map_cross_2mb|vm|lab2_case_kvm_map_cross_2mb|2|10|cross 2MB ok;RESULT: PASS|panic!|跨 2MB 页表边界
+19_kvm_map_cross_1gb|vm|lab2_case_kvm_map_cross_1gb|2|10|cross 1GB ok;RESULT: PASS|panic!|跨 1GB 页表边界
+20_kvm_map_top_va|vm|lab2_case_kvm_map_top_va|2|10|top va ok;RESULT: PASS|panic!|最高可用 VA（VA_MAX-PGSIZE）
+21_kvm_map_va_max|vm|lab2_case_kvm_map_va_max|2|10|panic! vm_mappages:Va out of range|LAB2:;RESULT: PASS|va == VA_MAX -> panic
+22_kvm_map_unaligned_va|vm|lab2_case_kvm_map_unaligned_va|2|10|panic! vm_mappages:Va or Pa is not page-aligned|LAB2:;RESULT: PASS|va 未对齐 -> panic
+23_kvm_map_unaligned_pa|vm|lab2_case_kvm_map_unaligned_pa|2|10|panic! vm_mappages:Va or Pa is not page-aligned|LAB2:;RESULT: PASS|pa 未对齐 -> panic
+24_kvm_map_len_zero|vm|lab2_case_kvm_map_len_zero|2|10|panic! vm_mappages:Invalid len|LAB2:;RESULT: PASS|len == 0 -> panic
+25_kvm_map_overflow|vm|lab2_case_kvm_map_overflow|2|10|panic! vm_mappages:Va out of range|LAB2:;RESULT: PASS|va+len 越界 -> panic
+26_kvm_map_duplicate|vm|lab2_case_kvm_map_duplicate|2|10|panic! vm_mappages:Try to change existing mapping|LAB2:;RESULT: PASS|重复映射同一 VA -> panic
+27_kvm_perm_flags|vm|lab2_case_kvm_perm_flags|2|10|flags ok;RESULT: PASS|panic!|权限位精确写入，不夹带其它位
+28_kvm_unmap_partial|vm|lab2_case_kvm_unmap_partial|2|10|partial unmap ok;RESULT: PASS|panic!|部分解映射，邻居映射不受影响
+29_kvm_unmap_freeit|vm|lab2_case_kvm_unmap_freeit|2|10|freeit ok;RESULT: PASS|panic!|freeit=true 把物理页还给空闲链表
+30_kvm_unmap_unmapped|vm|lab2_case_kvm_unmap_unmapped|2|10|panic! vm_unmappages:leaf pte dosen't exist|LAB2:;RESULT: PASS|解映射从未映射的 VA -> panic
+31_kvm_unmap_invalid_leaf|vm|lab2_case_kvm_unmap_invalid_leaf|2|10|panic! vm_unmappages:leaf pte dosen't valid|LAB2:;RESULT: PASS|重复解映射（叶子 V=0）-> panic
+32_kvm_unmap_len_zero|vm|lab2_case_kvm_unmap_len_zero|2|10|panic! vm_unmappages:Invalid len|LAB2:;RESULT: PASS|解映射 len == 0 -> panic
+33_kvm_unmap_overflow|vm|lab2_case_kvm_unmap_overflow|2|10|panic! vm_unmappages:Va out of range|LAB2:;RESULT: PASS|解映射区间越界 -> panic
+34_kvm_unmap_unaligned|vm|lab2_case_kvm_unmap_unaligned|2|10|panic! vm_unmappages:Va is not page-aligned|LAB2:;RESULT: PASS|解映射 va 未对齐 -> panic
+35_kvm_getpte_va_max|vm|lab2_case_kvm_getpte_va_max|2|10|panic! vm_getpte:Va out of range|LAB2:;RESULT: PASS|getpte(va == VA_MAX) -> panic
+36_pmem_concurrent|vm|lab2_case_pmem_concurrent|2|20|concurrent alloc ok: 128 pages, no duplicate;RESULT: PASS|panic!|双 hart 并发分配 / 释放
+37_kvm_vm_print|vm|lab2_case_kvm_vm_print|2|10|level-2 pgtbl: pa = ;physical page 0: pa = ;RESULT: PASS|panic!|vm_print 输出三级页表结构
+38_kvm_init_mappings|vm|lab2_case_kvm_init_mappings|2|10|kvm_init mappings ok;RESULT: PASS|panic!|UART/CLINT/PLIC/内核/可分配区映射检查
+39_kvm_unmap_va_max|vm|lab2_case_kvm_unmap_va_max|2|10|panic! vm_unmappages:Va out of range|LAB2:;RESULT: PASS|解映射 va == VA_MAX -> panic
