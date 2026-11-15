@@ -17,7 +17,7 @@ bash tests/run_tests.sh 05_printf_formats  # 单个
 用例                         结果   说明
 01_boot_dual                 PASS   双核启动 + 加锁求和
 ...
-PASS=8  FAIL=2
+PASS=9  FAIL=1
 ```
 
 原始输出在 `tests/results/<用例>.log`，失败时先看这里。
