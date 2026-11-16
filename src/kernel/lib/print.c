@@ -108,6 +108,17 @@ void printf(const char *fmt, ...)
                         }
                         break;
                     }
+                    case '%':{
+                        uart_putc_sync('%');
+                        break;
+                    }
+
+                    default: {
+                        // 无法识别格式说明符时，原样输出
+                        uart_putc_sync('%');
+                        uart_putc_sync(fmt[i+1]);
+                        break;
+                    }
                 }
 
                 i+=2;
