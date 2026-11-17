@@ -89,24 +89,21 @@ void trap_user_handler()
             p->tf->user_to_kern_epc += 4;
 
             // a7 保存系统调用编号
-            switch (p->tf->a7)
-            {
-            case SYS_helloworld:
-                printf("proczero: hello world!\n");
-
-                // a0 是系统调用的返回值寄存器
-                p->tf->a0 = 0;
-                break;
-
-            default:
-                printf("unknown syscall: %d\n",
-                       (int)p->tf->a7);
-
-                panic("trap_user_handler: unknown syscall");
-            }
+            syscall();
             break;
-
-        default:
+        case 13:
+            
+        case 15:{
+            uint64 flag=uvm_ustack_grow(p->pgtbl,
+                                        p->ustack_npage,
+                                        stval
+                                    );
+            assert(flag!=(uint64)-1,"trap_user_handler: invalid user stack page fault");
+            p->ustack_npage=flag;
+            break;
+        
+        }
+        default:{
             if (trap_id < 16)
                 printf("unexpected user exception: %s\n",
                        exception_info[trap_id]);
@@ -118,6 +115,7 @@ void trap_user_handler()
                    scause, p->tf->user_to_kern_epc, stval);
 
             panic("trap_user_handler");
+            }
         }
     }
 

@@ -81,4 +81,6 @@ typedef struct proc
 
     uint64 kstack;       // 内核栈的虚拟地址
     context_t ctx;       // 内核态进程上下文
+
+    mmap_region_t *mmap;//记录该进程已经申请了哪些 mmap 区域
 } proc_t;
