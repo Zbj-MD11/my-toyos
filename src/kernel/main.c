@@ -30,6 +30,9 @@ int main(void)
         // 初始化物理内存管理
         pmem_init();
 
+        // 初始化 mmap_region 节点仓库
+        mmap_init();
+
         // 创建内核 Sv39 三级页表
         // 包含 Trampoline 和 proczero 内核栈的映射
         kvm_init();
@@ -45,7 +48,8 @@ int main(void)
          * 2. timer_create()
          */
         trap_kernel_init();
-
+        // 测试用户页表复制与销毁
+        //test_uvm_copy_destroy();
         /*
          * 通知其他 Hart：
          * 全局初始化已经完成
@@ -133,4 +137,5 @@ int main(void)
         ;
 
     return 0;
+
 }

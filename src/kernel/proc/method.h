@@ -4,3 +4,4 @@
 
 pgtbl_t proc_pgtbl_init(uint64 trapframe);
 void proc_make_first();
+void test_uvm_copy_destroy(void);

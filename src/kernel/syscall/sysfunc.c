@@ -184,16 +184,114 @@ uint64 sys_brk()
 */
 uint64 sys_mmap()
 {
-    return 0;
-}
+    // 获取用户传入的参数
+    uint64 begin = 0;
+    uint32 len = 0;
 
+    arg_uint64(0, &begin);
+    arg_uint32(1, &len);
+
+    // 检查申请长度是否合法
+    if (len == 0 || len % PGSIZE != 0)
+    {
+        return (uint64)-1;
+    }
+
+    // 如果用户指定了起始地址，需要检查地址是否合法
+    if (begin != 0)
+    {
+        if (begin % PGSIZE != 0 ||
+            begin < MMAP_BEGIN ||
+            begin >= MMAP_END ||
+            (uint64)len > MMAP_END - begin)
+        {
+            return (uint64)-1;
+        }
+    }
+
+    // 将字节数转换为页面数量
+    uint32 npages = len / PGSIZE;
+
+    // 调用用户虚拟内存管理函数
+    uint64 actual_begin = uvm_mmap(
+        begin,
+        npages,
+        PTE_R | PTE_W
+    );
+
+    // 输出本次 mmap 的结果
+    printf(
+        "sys_mmap: begin = %x, len = %d\n",
+        actual_begin,
+        (int)len
+    );
+
+    // 输出当前进程的 mmap 链表和页表
+    proc_t *p = myproc();
+
+    uvm_show_mmaplist(p->mmap);
+    vm_print(p->pgtbl);
+    printf("\n");
+
+    // 返回实际分配的起始地址
+    return actual_begin;
+}
 /*
     解除一段内存映射
     uint64 start 起始地址
     uint32 len   范围 (字节, 需检查是否是page-aligned)
     成功返回0 失败返回-1
 */
+/*
+    解除一段内存映射
+    uint64 start 起始地址
+    uint32 len   范围（字节，需检查是否是page-aligned）
+    成功返回0，失败返回-1
+*/
 uint64 sys_munmap()
 {
+    // 获取用户传入的参数
+    uint64 begin = 0;
+    uint32 len = 0;
+
+    arg_uint64(0, &begin);
+    arg_uint32(1, &len);
+
+    // 检查释放长度是否合法
+    if (len == 0 || len % PGSIZE != 0)
+    {
+        return (uint64)-1;
+    }
+
+    // 检查释放地址及范围是否合法
+    if (begin % PGSIZE != 0 ||
+        begin < MMAP_BEGIN ||
+        begin >= MMAP_END ||
+        (uint64)len > MMAP_END - begin)
+    {
+        return (uint64)-1;
+    }
+
+    // 将字节数转换为页面数量
+    uint32 npages = len / PGSIZE;
+
+    // 解除映射并释放对应物理页
+    uvm_munmap(begin, npages);
+
+    // 输出本次 munmap 的结果
+    printf(
+        "sys_munmap: begin = %x, len = %d\n",
+        begin,
+        (int)len
+    );
+
+    // 输出当前进程的 mmap 链表和页表
+    proc_t *p = myproc();
+
+    uvm_show_mmaplist(p->mmap);
+    vm_print(p->pgtbl);
+    printf("\n");
+
+    // 释放成功
     return 0;
 }
