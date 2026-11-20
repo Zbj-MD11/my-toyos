@@ -89,8 +89,18 @@ void trap_kernel_handler()
         {
         
         case 1:
-
+            
+            
             timer_interrupt_handler();
+
+            // 如果当前 CPU 正在运行进程
+            // 则让该进程主动放弃 CPU
+
+            if (myproc() != NULL)
+            {
+                proc_yield();
+            }
+            
             break;
 
         case 9:
@@ -114,6 +124,10 @@ void trap_kernel_handler()
             panic("trap_kernel_handler");
         }
     }
+    // 恢复发生 Trap 时的 PC 和处理器状态
+    // 防止上下文切换期间其他 Trap 修改这些 CSR
+    w_sepc(sepc);
+    w_sstatus(sstatus);
 }
 
 // 外设中断处理 (基于PLIC，lab-3只需要识别和处理UART中断)

@@ -55,6 +55,10 @@ void trap_user_handler()
         case 1:
             // S-mode 软件中断：处理时钟事件
             timer_interrupt_handler();
+
+            // 当前用户进程主动让出 CPU
+            proc_yield();
+            
             break;
 
         case 9:

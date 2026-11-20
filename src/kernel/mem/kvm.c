@@ -197,16 +197,16 @@ void kvm_init()
         (uint64)ALLOC_END-(uint64)ALLOC_BEGIN,
         PTE_R | PTE_W
     );
-
-    void *kstack_page = pmem_alloc(true);
-    vm_mappages(
-        kernel_pgtbl,
-        (uint64)KSTACK(0),
-        (uint64)kstack_page,
-        PGSIZE,
-        PTE_R | PTE_W
-    );
-
+    for(int i=0;i<N_PROC;i++){
+        void *kstack_page = pmem_alloc(true);
+        vm_mappages(
+            kernel_pgtbl,
+            (uint64)KSTACK(i),
+            (uint64)kstack_page,
+            PGSIZE,
+            PTE_R | PTE_W
+        );
+    }
     
 
 }
