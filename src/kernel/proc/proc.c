@@ -711,6 +711,8 @@ void proc_scheduler()
     //如果直接用这里的for循环查找，则会有天然的优先级关系
     // 调度器永不退出
     while(1){
+        // 非常重要：确保调度器运行期间允许中断
+        intr_on();
         // 循环扫描整个 PCB 资源仓库
         for(int i=0;i<N_PROC;i++){
 
