@@ -1,5 +1,5 @@
 #include "mod.h"
-
+#include "../proc/mod.h"
 // in trampoline.S
 extern char trampoline[];   // 用户态与内核态共享的跳板代码
 extern char user_vector[];  // 用户态 trap 的汇编入口

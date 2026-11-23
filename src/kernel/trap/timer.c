@@ -1,5 +1,5 @@
 #include "mod.h"
-
+#include "../proc/mod.h"
 /*-------------------- 工作在M-mode --------------------*/
 
 // in trap.S M-mode时钟中断处理流程()
@@ -52,7 +52,10 @@ void timer_create()
 void timer_update()
 {
     spinlock_acquire(&sys_timer.lk);
+
     sys_timer.ticks++;
+    // 唤醒所有等待系统时钟的进程
+    proc_wakeup(&sys_timer);
 
     spinlock_release(&sys_timer.lk);
 }
@@ -66,8 +69,27 @@ uint64 timer_get_ticks()
     return cur;
 }
 
-// 让进程睡眠ntick个时钟周期
+// 让当前进程睡眠 ntick 个时钟周期
 void timer_wait(uint64 ntick)
 {
+    // 获取系统时钟锁
+    spinlock_acquire(&sys_timer.lk);
 
+    // 记录开始睡眠时的 tick
+    uint64 start = sys_timer.ticks;
+
+    // 判断是否已经经过 ntick 个时钟周期
+    while (sys_timer.ticks - start < ntick)
+    {
+        //调试信息
+         printf("proc %d is sleeping!\n", myproc()->pid);
+        // 当前进程等待系统时钟，进入睡眠状态
+        proc_sleep(&sys_timer, &sys_timer.lk);
+    }
+
+    //调试信息
+    printf("proc %d is wakeup!\n", myproc()->pid);
+
+    // 已经经过指定的时钟周期，释放锁
+    spinlock_release(&sys_timer.lk);
 }

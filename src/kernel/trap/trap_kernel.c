@@ -1,5 +1,5 @@
 #include "mod.h"
-
+#include "../proc/mod.h"
 // 中断信息
 char *interrupt_info[16] = {
     "U-mode software interrupt",      // 0
@@ -157,13 +157,30 @@ void external_interrupt_handler()
 // 时钟中断处理 (基于CLINT)
 void timer_interrupt_handler()
 {
-    // 由于sys_timer是共享资源, 但每个CPU都能收到时钟中断
-    // 所以只需要指定一个CPU(CPU-0)负责更新时钟
-    //printf("cpu %d:di da\n", mycpuid());
-    if(mycpuid() == 0)
+    int hartid = mycpuid();
+
+    // 每个 Hart 最多打印 5 次，避免刷屏
+    static int debug_count[NCPU] = {0};
+
+    if (debug_count[hartid] < 5)
+    {
+        debug_count[hartid]++;
+
+        printf("[DEBUG] timer interrupt on hart %d\n", hartid);
+    }
+
+    // 只有 Hart 0 负责更新全局时钟
+    if (hartid == 0)
+    {
         timer_update();
-    // 清除 SSIP bit (S-mode software interrupt pending)
-    // 宣布 S-mode 软件中断处理完成
-    // 在 trap.S 里面有对应的两条命令, 去找找
+
+        if (debug_count[hartid] <= 5)
+        {
+            printf("[DEBUG] ticks = %d\n",
+                   (int)timer_get_ticks());
+        }
+    }
+
+    // 清除 SSIP
     w_sip(r_sip() & ~2);
 }

@@ -38,7 +38,19 @@ static int alloc_pid()
 /* 释放进程锁 + trap_user_return */
 static void proc_return()
 {
+    // 获取当前进程
+    proc_t *p = myproc();
 
+    assert(p != NULL, "proc_return: no current process");
+
+    //调试信息
+    // printf("proc %d is running\n", p->pid);
+
+    // 释放调度器交接过来的进程锁
+    spinlock_release(&p->lk);
+
+    // 准备用户态执行环境并返回 U-mode
+    trap_user_return();
 }
 
 /* 进程模块初始化 */
@@ -451,6 +463,8 @@ static void proc_try_wakeup(proc_t *p)
     // 检查父进程是否正在等待子进程退出
     if (p->state == SLEEPING && p->sleep_space == p)
     {
+        //调试信息
+        printf("proc %d is wakeup!\n", p->pid);
         // 将父进程重新设置为可运行状态
         p->state = RUNNABLE;
     }
@@ -473,8 +487,9 @@ void proc_exit(int exit_code)
 
     // 获取当前进程的父进程
     proc_t *parent = proc->parent;
-    // 获取父进程锁
+    // 先获取父进程锁，再获取当前进程锁
     spinlock_acquire(&parent->lk);
+    spinlock_acquire(&proc->lk);
     // 保存进程退出状态
     proc->exit_code=exit_code;
     // 将当前进程设置为僵尸状态
@@ -581,7 +596,8 @@ int proc_wait(uint64 user_addr)
         // 仍然有子进程，但尚未进入 ZOMBIE 状态
         // 让当前父进程进入睡眠，等待子进程退出
         proc_sleep(parent, &parent->lk);
-
+        //调试信息
+        printf("proc %d is wakeup!\n", parent->pid);
         // 父进程被唤醒后重新检查所有子进程
     }
 }
@@ -708,6 +724,9 @@ void proc_scheduler()
 
                 // 将进程关联到当前 CPU
                 cpu->proc = p;
+
+                //调试信息
+                // printf("proc %d is running\n", p->pid);
 
                 // 保存调度器上下文
                 // 恢复目标进程的内核上下文

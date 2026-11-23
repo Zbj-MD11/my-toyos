@@ -1,5 +1,5 @@
 #include "mod.h"
-
+#include "../proc/mod.h"
 /*
     用户堆空间伸缩
     uint64 new_heap_top (如果是0, 代表查询当前堆顶位置)
@@ -211,7 +211,16 @@ uint64 sys_munmap()
 */
 uint64 sys_print_str()
 {
+    // 准备内核缓冲区
+    char buf[128];
 
+    // 从用户空间读取字符串
+    arg_str(0, buf, sizeof(buf));
+
+    // 打印字符串
+    printf("%s", buf);
+
+    return 0;
 }
 
 /*
@@ -221,7 +230,14 @@ uint64 sys_print_str()
 */
 uint64 sys_print_int()
 {
+    uint32 num = 0;
 
+    // 获取用户传入的整数
+    arg_uint32(0, &num);
+
+    printf("%d", (int)num);
+
+    return 0;
 }
 
 /*
@@ -230,7 +246,7 @@ uint64 sys_print_int()
 */
 uint64 sys_fork()
 {
-
+    return (uint64)proc_fork();
 }
 
 /*
@@ -239,7 +255,13 @@ uint64 sys_fork()
 */
 uint64 sys_wait()
 {
+    uint64 user_addr = 0;
 
+    // 获取用户传入的退出状态保存地址
+    arg_uint64(0, &user_addr);
+
+    // 等待子进程退出
+    return (uint64)proc_wait(user_addr);
 }
 
 /*
@@ -249,7 +271,18 @@ uint64 sys_wait()
 */
 uint64 sys_exit()
 {
+    uint32 exit_code = 0;
 
+    // 获取用户传入的退出码
+    arg_uint32(0, &exit_code);
+
+    // 当前进程进入 ZOMBIE 状态并交出 CPU
+    proc_exit((int)exit_code);
+
+    // 正常情况下不会执行到这里
+    panic("sys_exit: proc_exit returned");
+
+    return 0;
 }
 
 /*
@@ -259,7 +292,15 @@ uint64 sys_exit()
 */
 uint64 sys_sleep()
 {
+    uint32 ntick = 0;
 
+    // 获取用户传入的睡眠时间
+    arg_uint32(0, &ntick);
+
+    // 让当前进程睡眠指定数量的tick
+    timer_wait((uint64)ntick);
+
+    return 0;
 }
 
 /*
@@ -267,5 +308,8 @@ uint64 sys_sleep()
 */
 uint64 sys_getpid()
 {
+    // 获取当前进程
+    proc_t *p = myproc();
 
+    return (uint64)p->pid;
 }

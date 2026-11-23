@@ -50,6 +50,10 @@ int main(void)
         trap_kernel_init();
         // 测试用户页表复制与销毁
         //test_uvm_copy_destroy();
+
+        // 初始化进程管理模块
+        proc_init();
+
         /*
          * 通知其他 Hart：
          * 全局初始化已经完成
@@ -108,13 +112,12 @@ int main(void)
     }
 
     /*
-     * 第四阶段：启动第一个用户态进程
-     *
-     * 只由 Hart 0 执行。
-     * proc_make_first() 最终通过 swtch()
-     * 进入 trap_user_return()，
-     * 再通过 trampoline.S 中的 sret 进入 U-mode。
-     */
+    第四阶段：创建第一个用户进程
+
+    只由 Hart 0 执行
+    此时仅创建进程并将其设置为 RUNNABLE
+    真正的执行由 proc_scheduler 负责
+    */
     if (cpuid == 0)
     {
         printf("Starting proczero...\n");
@@ -123,19 +126,14 @@ int main(void)
     }
 
     /*
-     * 第五阶段：保持内核运行
-     *
-     * 当前尚未实现进程调度器。
-     *
-     * Hart 0：正常情况下已经切换到 proczero，
-     *         不会继续执行到这里。
-     *
-     * 其他 Hart：暂时在内核中空闲循环，
-     *            仍然可以响应已启用的中断。
-     */
-    while (1)
-        ;
+    第五阶段：启动进程调度器
 
+    每个 CPU 都需要执行
+    调度器负责寻找 RUNNABLE 进程
+    并将其切换到 RUNNING 状态
+    */
+    proc_scheduler();
+    
     return 0;
 
 }
