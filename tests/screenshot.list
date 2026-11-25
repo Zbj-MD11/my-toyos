@@ -1,0 +1,21 @@
+# 需要截图的用例（一行一个，# 开头是注释）
+# 说明：--gui 模式用，逐屏 gnome-screenshot；--render 模式不需要这个文件
+01_boot
+02_path_trap_init
+03_bva_tick_zero
+04_path_tick_monotonic
+05_path_ctx_regs
+06_eq_uart_echo
+07_bva_uart_fifo16
+08_eq_uart_backspace
+09_eq_uart_crlf
+10_bva_uart_bs_start
+11_eq_uart_multiline
+12_bva_uart_empty_line
+13_fi_ecall
+14_fi_illegal
+15_fi_load_pf
+16_fi_store_pf
+17_con_smp2_tick
+18_con_smp2_uart
+19_st_soak
