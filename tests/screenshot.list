@@ -1,0 +1,32 @@
+# 需要截图的用例（一行一个，# 开头是注释）
+# 选取原则：每个功能点至少一张，覆盖 路径 / 等价类 / 边界 三类设计
+01_boot
+02_sv39_identity
+03_pmem_kernel_exhaust
+04_pmem_user_exhaust
+05_pmem_alloc_unique
+06_pmem_lifo_reuse
+07_pmem_zero_after_free
+08_pmem_free_unaligned
+09_pmem_free_below_range
+11_pmem_free_user_as_kernel
+13_pmem_double_free
+14_kvm_getpte_paths
+15_kvm_map_single
+16_kvm_map_multi
+17_kvm_map_len_boundary
+18_kvm_map_cross_2mb
+19_kvm_map_cross_1gb
+20_kvm_map_top_va
+22_kvm_map_unaligned_va
+24_kvm_map_len_zero
+25_kvm_map_overflow
+26_kvm_map_duplicate
+27_kvm_perm_flags
+28_kvm_unmap_partial
+29_kvm_unmap_freeit
+30_kvm_unmap_unmapped
+31_kvm_unmap_invalid_leaf
+36_pmem_concurrent
+37_kvm_vm_print
+38_kvm_init_mappings
