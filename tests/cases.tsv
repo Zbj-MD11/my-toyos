@@ -1,0 +1,24 @@
+# lab-3 用例表（tests/run_tests.sh 读取；render_shot.py 也读它）
+# 列: id | stage | 测试函数 | smp | 超时(s) | 必须出现的字符串(; 分隔) | 禁止出现的字符串(; 分隔) | 说明
+# stage: orig=原样 main.c，不注入；其余是"测试类别"标签（path/bva/eq/con/fi/st），
+#        都会注入 tests/suite/lab3_tests.c + lab3_tests_asm.S，并重写 main.c
+# 关联: tests/stdin/<id>.sh = 喂给 QEMU 串口的输入；tests/checks/<id>.sh = 需要数行数/还原屏幕的判定
+01_boot|orig|-|2|8|cpu 0 is booting!;cpu 1 is booting!;Welcome to ToyOS!;ticks = |panic!|总览：原样内核启动，双核 banner + 时钟滴答
+02_path_trap_init|path|lab3_case_trap_init|1|8|stvec ok;sie ok;intr on;RESULT: PASS trap_init|panic!|路径：stvec=kernel_vector 且 4 字节对齐 / sie.SEIE+SSIE / sstatus.SIE=1
+03_bva_tick_zero|bva|lab3_case_tick_zero|1|8|ticks0 =;RESULT: PASS tick_zero|panic!|边界：启动后 ticks 从 0 起（≤3 个，容许建页表耗时）
+04_path_tick_monotonic|path|lab3_case_tick_monotonic|1|12|reached 5 ticks;monotonic ok;timer delivered as SSI;RESULT: PASS tick_monotonic|panic!|路径：MTIMECMP->timer_vector->SSIP->timer_update，5 个 tick 单调递增且以 SSI（cause=1）投递
+05_path_ctx_regs|path|lab3_case_ctx_regs|1|12|ctx: s0-s11 preserved;RESULT: PASS ctx_regs|panic!|路径：trap.S 上下文保存/恢复，12 个 callee-saved 哨兵跨中断不变
+06_eq_uart_echo|eq|lab3_case_uart_window|1|8|abc;RESULT: PASS uart_window|panic!|等价类：普通可打印字符回显
+07_bva_uart_fifo16|bva|lab3_case_uart_window|1|8|0123456789abcdef;RESULT: PASS uart_window|panic!|边界：一次 16 字符（=16550 FIFO 容量）全部回显
+08_eq_uart_backspace|eq|lab3_case_uart_window|1|8|[check] PASS|panic!|等价类：退格 0x08，ab 删到 a 再打 c，屏幕应为 ac
+09_eq_uart_crlf|eq|lab3_case_uart_window|1|8|[check] PASS|panic!|等价类：\r / 孤立 \n / CRLF 三行只产生 3 个换行
+10_bva_uart_bs_start|bva|lab3_case_uart_window|1|8|[check] PASS|panic!|边界：行首退格（line_len==0）不输出任何字符
+11_eq_uart_multiline|eq|lab3_case_uart_window|1|8|one;two;three;RESULT: PASS uart_window|panic!|等价类：连续三行回显，验证 plic_claim 之后必须 plic_complete
+12_bva_uart_empty_line|bva|lab3_case_uart_window|1|8|[check] PASS|panic!|边界：只送 \r（空行），不崩不卡不吞字符
+13_fi_ecall|fi|lab3_case_exc_ecall|1|8|unexpected exception: Environment call from S-mode;panic! trap_kernel_handler|LAB3:|异常：ecall from S-mode -> 打印原因后 panic
+14_fi_illegal|fi|lab3_case_exc_illegal|1|8|unexpected exception: Illegal instruction;panic! trap_kernel_handler|LAB3:|异常：非法指令（.word 0）
+15_fi_load_pf|fi|lab3_case_exc_load|1|8|unexpected exception: Load page fault;panic! trap_kernel_handler|LAB3:|异常：读未映射地址（va 0）
+16_fi_store_pf|fi|lab3_case_exc_store|1|8|unexpected exception: Store/AMO page fault;panic! trap_kernel_handler|LAB3:|异常：写未映射地址（va 0）
+17_con_smp2_tick|con|lab3_case_smp_tick_rate|2|4|TICK;[check] PASS|panic!|并发：-smp 2 下 ticks 不翻倍（timer 只有 hart0 更新）
+18_con_smp2_uart|con|lab3_case_smp_uart|2|8|smp;hart1 scause = 0x8000;hart1 sip cleared = 1;RESULT: PASS smp_uart|panic!|并发：hart1 确实收到 SSI 且 SSIP 被清，串口中断被唯一 claim
+19_st_soak|st|lab3_case_soak|2|10|soak-ok;soak ticks =;RESULT: PASS soak|panic!|压力：25 个 tick 内 tick 与输入交错，不丢字符、不死锁
