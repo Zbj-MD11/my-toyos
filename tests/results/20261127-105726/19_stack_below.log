@@ -1,0 +1,24 @@
+Command: qemu-system-riscv64 -machine virt -bios none -m 128M -smp 1 -nographic -monitor none -kernel /home/ailab-os/lab4/tests/results/20261127-105726/19_stack_below/target/kernel/kernel-qemu.elf
+cpu 0 is booting!
+
+================================
+       Welcome to ToyOS!        
+================================
+Hello, World!
+Physical memory initialized.
+Sv39 virtual memory enabled.
+Interrupt system initialized.
+
+Starting proczero...
+[probe] process, initial context and mappings OK
+[probe] U-mode syscall entry OK
+proczero: hello world!
+[probe] syscall return a0=0, PC+4 OK
+[probe] expected syscall count reached
+[probe] user external interrupt and unchanged PC OK
+unexpected user exception: Load page fault
+scause = 0x000000000000000d, sepc = 0x0000000000001024, stval = 0x0000003fffffcfff
+panic! trap_user_handler
+qemu-system-riscv64: terminating on signal 15 from pid 3983 (python3)
+
+[check] PASS all assertions satisfied
