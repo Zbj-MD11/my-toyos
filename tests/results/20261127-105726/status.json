@@ -1,0 +1,170 @@
+[
+  {
+    "id": "01_boot",
+    "category": "basic",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "02_process_mapping",
+    "category": "path",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "03_syscall_once",
+    "category": "basic",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "04_syscall_repeat",
+    "category": "boundary",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "05_user_timer",
+    "category": "path",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "06_user_uart",
+    "category": "path",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "07_smp2",
+    "category": "concurrent",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 2
+  },
+  {
+    "id": "08_unknown_one",
+    "category": "invalid",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "09_unknown_large",
+    "category": "invalid",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "10_unknown_negative",
+    "category": "invalid",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "11_illegal",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "12_privileged",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "13_zero_read",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "14_zero_write",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "15_code_write",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "16_trapframe_read",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "17_trampoline_read",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "18_stack_execute",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "19_stack_below",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "20_code_after",
+    "category": "protection",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "21_stack_endpoints",
+    "category": "boundary",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "22_code_endpoints",
+    "category": "boundary",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "23_trap_registers",
+    "category": "path",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  },
+  {
+    "id": "24_context_switch",
+    "category": "path",
+    "status": "PASS",
+    "reasons": [],
+    "smp": 1
+  }
+]

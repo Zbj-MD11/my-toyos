@@ -1,0 +1,53 @@
+Command: qemu-system-riscv64 -machine virt -bios none -m 128M -smp 1 -nographic -monitor none -kernel /home/ailab-os/lab4/tests/results/20261127-105726/04_syscall_repeat/target/kernel/kernel-qemu.elf
+cpu 0 is booting!
+
+================================
+       Welcome to ToyOS!        
+================================
+Hello, World!
+Physical memory initialized.
+Sv39 virtual memory enabled.
+Interrupt system initialized.
+
+Starting proczero...
+[probe] process, initial context and mappings OK
+[probe] U-mode syscall entry OK
+proczero: hello world!
+[probe] syscall return a0=0, PC+4 OK
+[probe] user external interrupt and unchanged PC OK
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+proczero: hello world!
+[probe] expected syscall count reached
+[probe] user timer, ticks and unchanged PC OK
+qemu-system-riscv64: terminating on signal 15 from pid 3983 (python3)
+
+[check] PASS all assertions satisfied
